@@ -48,7 +48,6 @@ class CheckpointManager:
         self.path = f"{self.name}.dill"
 
         self._interaction_manager = AgentInteractionManager()
-        # self._state = OrderedDict() # NOTE: I think this is not used
 
         self._action_idx = 0
         self.recorded_actions = []
@@ -57,22 +56,6 @@ class CheckpointManager:
             self.load()
 
         self._initialized = True
-
-    # def update(self, step: str = None, save: bool = False):
-    #     """
-    #     Update the checkpoint with the current state of the simulation.
-    #     """
-
-    #     self._state[step] = {
-    #         "agents": [agent.dump() for agent in self._interaction_manager._agents.values()],
-    #         "interactions": [interaction.dump() for interaction in self._interaction_manager._interactions],
-    #     }
-
-    #     if save:
-    #         self.save()
-
-    # def _set_internal_state(self, state: OrderedDict):
-    #     self._state = state
 
     def save(self) -> None:
         """
@@ -88,5 +71,4 @@ class CheckpointManager:
 
         env_data = dill.load(open(self.path, "rb"))
 
-        # self._state = OrderedDict(env_data["state"])
         self.recorded_actions = env_data["actions"]
