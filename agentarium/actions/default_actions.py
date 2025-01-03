@@ -52,7 +52,7 @@ def talk_action_function(*args, **kwargs):
 
 @verify_agent_in_kwargs
 @cache_w_checkpoint_manager
-def think_action_function(*params, **kwargs):
+def think_action_function(*args, **kwargs):
     """
     Record an agent's internal thought.
 
@@ -69,7 +69,22 @@ def think_action_function(*params, **kwargs):
     Raises:
         RuntimeError: If no parameters are provided for the thought content.
     """
-    return talk_action_function(kwargs["agent"].agent_id, *params, **kwargs)
+
+    if len(args) < 1:
+        raise RuntimeError(f"Received a TALK action with less than 1 argument: {args}")
+
+    if "agent" not in kwargs:
+        raise RuntimeError(f"Couldn't find agent in  {kwargs=} for TALK action")
+
+    message = args[0]
+
+    kwargs["agent"]._interaction_manager.record_interaction(kwargs["agent"], kwargs["agent"], message)
+
+    return {
+        "sender": kwargs["agent"].agent_id,
+        "receiver": kwargs["agent"].agent_id,
+        "message": message,
+    }
 
 
 # Create action instances at module level
