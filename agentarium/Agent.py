@@ -360,7 +360,7 @@ Write in the following format:
         return {
             "agent_id": self.agent_id,
             "agent_informations": self.agent_informations,
-            "interactions": [interaction.dump() for interaction in self._interaction_manager._agent_private_interactions[self.agent_id]],
+            "interactions": [interaction.dump() for interaction in self._interaction_manager.get_agent_interactions(self)],
         }
 
     def __str__(self) -> str:
