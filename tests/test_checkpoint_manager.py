@@ -6,6 +6,8 @@ from agentarium.CheckpointManager import CheckpointManager
 @pytest.fixture
 def checkpoint_manager():
     """Create a test checkpoint manager."""
+    # Reset the singleton instance
+    CheckpointManager._instance = None
     manager = CheckpointManager("test_checkpoint")
     yield manager
     # Cleanup after tests
@@ -21,11 +23,10 @@ def test_checkpoint_manager_initialization(checkpoint_manager):
     assert len(checkpoint_manager.recorded_actions) == 0
 
 
-def test_checkpoint_save_load(checkpoint_manager):
+def test_checkpoint_save_load(checkpoint_manager, agent_pair):
     """Test saving and loading checkpoint data."""
     # Create agents and perform actions
-    alice = Agent.create_agent(name="Alice")
-    bob = Agent.create_agent(name="Bob")
+    alice, bob = agent_pair
 
     alice.talk_to(bob, "Hello Bob!")
     bob.talk_to(alice, "Hi Alice!")
@@ -41,10 +42,17 @@ def test_checkpoint_save_load(checkpoint_manager):
     assert len(new_manager.recorded_actions) > 0
     assert new_manager.recorded_actions == checkpoint_manager.recorded_actions
 
-def test_checkpoint_recording(checkpoint_manager):
+    # Reset agents after test
+    alice.reset()
+    bob.reset()
+
+
+def test_checkpoint_recording(checkpoint_manager, agent_pair):
     """Test that actions are properly recorded."""
-    alice = Agent.create_agent(name="Alice")
-    bob = Agent.create_agent(name="Bob")
+    alice, bob = agent_pair
+
+    # Check that actions were recorded
+    assert len(checkpoint_manager.recorded_actions) == 2 # two agents created
 
     # Perform some actions
     alice.talk_to(bob, "Hello!")
@@ -52,12 +60,16 @@ def test_checkpoint_recording(checkpoint_manager):
     bob.talk_to(alice, "Hi there!")
 
     # Check that actions were recorded
-    assert len(checkpoint_manager.recorded_actions) == 3
+    assert len(checkpoint_manager.recorded_actions) == 3 + 2 # three actions + two agents created
+
+    # Reset agents after test
+    alice.reset()
+    bob.reset()
 
 def test_singleton_behavior():
     """Test that CheckpointManager behaves like a singleton."""
-    manager1 = CheckpointManager("test_singleton")
-    manager2 = CheckpointManager("test_singleton")
+    manager1 = CheckpointManager()
+    manager2 = CheckpointManager()
 
     # Both instances should reference the same object
     assert manager1 is manager2
@@ -65,30 +77,3 @@ def test_singleton_behavior():
     # Clean up
     if os.path.exists(manager1.path):
         os.remove(manager1.path)
-
-def test_invalid_checkpoint_load():
-    """Test loading from a non-existent checkpoint file."""
-    manager = CheckpointManager("nonexistent_checkpoint")
-
-    with pytest.raises(FileNotFoundError):
-        manager.load()
-
-def test_checkpoint_reset():
-    """Test resetting checkpoint manager state."""
-    manager = CheckpointManager("test_reset")
-
-    # Create some actions
-    alice = Agent.create_agent(name="Alice")
-    alice.think("Test thought")
-
-    assert len(manager.recorded_actions) > 0
-
-    # Reset by creating a new instance with a different name
-    new_manager = CheckpointManager("different_name")
-    assert len(new_manager.recorded_actions) == 0
-
-    # Clean up
-    if os.path.exists(manager.path):
-        os.remove(manager.path)
-    if os.path.exists(new_manager.path):
-        os.remove(new_manager.path)

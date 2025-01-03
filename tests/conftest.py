@@ -19,13 +19,16 @@ def cleanup_checkpoint_files():
 @pytest.fixture
 def base_agent():
     """Create a basic agent for testing."""
-    return Agent.create_agent(
+    agent = Agent.create_agent(
         name="TestAgent",
         age=25,
         occupation="Software Engineer",
         location="Test City",
         bio="A test agent"
     )
+    yield agent
+    # Reset the agent after each test that uses this fixture
+    agent.reset()
 
 
 @pytest.fixture
@@ -45,6 +48,9 @@ def checkpoint_manager():
 @pytest.fixture
 def agent_pair():
     """Create a pair of agents for interaction testing."""
-    alice = Agent.create_agent(name="Alice")
-    bob = Agent.create_agent(name="Bob")
-    return alice, bob
+    alice = Agent.create_agent(name="Alice", bio="Alice is a test agent")
+    bob = Agent.create_agent(name="Bob", bio="Bob is a test agent")
+    yield alice, bob
+    # Reset both agents after each test that uses this fixture
+    alice.reset()
+    bob.reset()

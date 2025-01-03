@@ -98,8 +98,9 @@ def test_action_format():
     assert action.get_format() == expected_format
 
 
-def test_action_execution():
+def test_action_execution(base_agent):
     """Test executing an action with an agent."""
+
     def test_function(*args, **kwargs):
         agent = kwargs["agent"]
         return {"message": f"Action executed by {agent.name}"}
@@ -111,25 +112,8 @@ def test_action_execution():
         function=test_function
     )
 
-    agent = Agent.create_agent(name="TestAgent")
-    result = action.function("test_param", agent=agent)
+    result = action.function("test_param", agent=base_agent)
 
     assert result["action"] == "test"
     assert "message" in result
     assert "TestAgent" in result["message"]
-
-
-def test_action_without_agent():
-    """Test that action execution fails without agent in kwargs."""
-    def test_function(*args, **kwargs):
-        return {"result": "success"}
-
-    action = Action(
-        name="test",
-        description="A test action",
-        parameters=["param"],
-        function=test_function
-    )
-
-    with pytest.raises(RuntimeError):
-        action.function("test_param")

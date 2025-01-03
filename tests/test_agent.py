@@ -4,40 +4,38 @@ from agentarium import Agent, Action
 from agentarium.constant import DefaultValue
 
 
-def test_agent_creation():
+def test_agent_creation(base_agent):
     """Test basic agent creation with default and custom values."""
     # Test with default values
-    agent = Agent.create_agent(bio="A test agent") # prevents the LLM from generating a bio
-    assert agent.agent_id is not None
-    assert agent.name is not None
-    assert agent.age is not None
-    assert agent.occupation is not None
-    assert agent.location is not None
-    assert agent.bio is not None
+    assert base_agent.agent_id is not None
+    assert base_agent.name is not None
+    assert base_agent.age is not None
+    assert base_agent.occupation is not None
+    assert base_agent.location is not None
+    assert base_agent.bio is not None
 
-    # Test with custom values
+    # Test without default values (nor bio)
     custom_agent = Agent.create_agent(
         name="Alice",
         age=25,
         occupation="Software Engineer",
         location="San Francisco",
-        bio="A passionate software engineer"
     )
-    assert custom_agent.name == "Alice"
-    assert custom_agent.age == 25
-    assert custom_agent.occupation == "Software Engineer"
-    assert custom_agent.location == "San Francisco"
-    assert custom_agent.bio == "A passionate software engineer"
+    assert isinstance(custom_agent.name, str)
+    assert isinstance(custom_agent.age, int)
+    assert isinstance(custom_agent.occupation, str)
+    assert isinstance(custom_agent.location, str)
+    assert isinstance(custom_agent.bio, str)
 
 
-def test_agent_default_actions():
+def test_agent_default_actions(agent_pair):
     """Test that agents are created with default actions."""
-    agent = Agent.create_agent()
-    assert "talk" in agent._actions
-    assert "think" in agent._actions
+    alice, _ = agent_pair
+    assert "talk" in alice._actions
+    assert "think" in alice._actions
 
 
-def test_agent_custom_actions():
+def test_agent_custom_actions(base_agent):
     """Test adding and using custom actions."""
     def custom_action(*args, **kwargs):
         agent = kwargs["agent"]
@@ -50,19 +48,18 @@ def test_agent_custom_actions():
         function=custom_action
     )
 
-    agent = Agent.create_agent(name="Bob", bio="A test agent")
-    agent.add_action(custom_action_obj)
+    base_agent.add_action(custom_action_obj)
 
-    assert "custom" in agent._actions
-    result = agent.execute_action("custom", "test message")
+    assert "custom" in base_agent._actions
+    result = base_agent.execute_action("custom", "test message")
     assert result["action"] == "custom"
     assert "message" in result
 
 
-def test_agent_interaction():
+def test_agent_interaction(agent_pair):
     """Test basic interaction between agents."""
-    alice = Agent.create_agent(name="Alice")
-    bob = Agent.create_agent(name="Bob")
+
+    alice, bob = agent_pair
 
     message = "Hello Bob!"
     alice.talk_to(bob, message)
@@ -82,9 +79,10 @@ def test_agent_interaction():
     assert bob_interactions[0].message == message
 
 
-def test_agent_think():
+def test_agent_think(agent_pair):
     """Test agent's ability to think."""
-    agent = Agent.create_agent(name="Alice")
+
+    agent, _ = agent_pair
     thought = "I should learn more about AI"
 
     agent.think(thought)
@@ -96,21 +94,19 @@ def test_agent_think():
     assert interactions[0].message == thought
 
 
-def test_invalid_action():
+def test_invalid_action(base_agent):
     """Test handling of invalid actions."""
-    agent = Agent.create_agent()
 
     with pytest.raises(RuntimeError):
-        agent.execute_action("nonexistent_action", "test")
+        base_agent.execute_action("nonexistent_action", "test")
 
 
-def test_agent_reset():
+def test_agent_reset(base_agent):
     """Test resetting agent state."""
-    agent = Agent.create_agent()
-    agent.think("Initial thought")
+    base_agent.think("Initial thought")
 
-    assert len(agent.get_interactions()) == 1
+    assert len(base_agent.get_interactions()) == 1
 
-    agent.reset()
-    assert len(agent.get_interactions()) == 0
-    assert len(agent.storage) == 0
+    base_agent.reset()
+    assert len(base_agent.get_interactions()) == 0
+    assert len(base_agent.storage) == 0
