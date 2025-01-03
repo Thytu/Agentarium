@@ -176,6 +176,3 @@ cython_debug/
 
 # VS Code
 *.code-workspace
-
-# Pytest
-tests/
