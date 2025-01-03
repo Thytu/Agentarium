@@ -175,3 +175,5 @@ cython_debug/
 *.pkl
 
 .DS_Store
+*.dill
+*.pkl
