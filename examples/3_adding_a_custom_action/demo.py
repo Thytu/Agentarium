@@ -5,7 +5,7 @@ It demonstrates:
 2. Adding a new action (ChatGPT integration) to the agent
 3. Using both direct action calls and autonomous agent behavior
 
-The demo specifically shows how to use the `add_new_action` method to extend an agent's capabilities:
+The demo specifically shows how to use the `add_action` method to extend an agent's capabilities:
 
 Action Definition Format:
     {
@@ -22,14 +22,14 @@ standardized to include the action name.
 
 import aisuite as ai
 from typing import Dict, Any
-from agentarium.agent import Agent
+from agentarium import Agent, Action
 
 
 # Initialize the AI client for ChatGPT interactions
 llm_client = ai.Client()
 
 
-def use_chatgpt(agent: Agent, prompt: str, *args, **kwargs) -> Dict[str, str]:
+def use_chatgpt(prompt: str, *args, **kwargs) -> Dict[str, str]:
     """
     A custom action that allows an agent to interact with ChatGPT.
     This function demonstrates how to:
@@ -53,6 +53,9 @@ def use_chatgpt(agent: Agent, prompt: str, *args, **kwargs) -> Dict[str, str]:
             - chatgpt_response: ChatGPT's response
             Note: The 'action' key will be automatically added by the framework when called by agent.act()
     """
+
+    agent: Agent = kwargs["agent"] # Every action receives the agent in kwargs
+
     # Initialize chat history if it doesn't exist
     if "chatgpt_history" not in agent.storage:
         agent.storage["chatgpt_history"] = []
@@ -114,31 +117,29 @@ def main():
     )
 
     # Add the ChatGPT action to the agent's capabilities
-    # This demonstrates how to use add_new_action:
+    # This demonstrates how to use add_action:
     # 1. Define the action descriptor with prompt, format, and example
     # 2. Provide an action function that implements the behavior
-    agent.add_new_action(
+    agent.add_action(
         # Action descriptor - tells the agent how to use this action
-        {
-            "prompt": "Use ChatGPT to have a conversation or ask questions.",
-            "format": "[CHATGPT][Your message here]",  # Format must start with action name in caps
-            "example": "[CHATGPT][What's the weather like today?]",
-        },
-        # Action function - implements the actual behavior
-        action_function=use_chatgpt
+        Action(
+            name="CHATGPT",
+            description="Use ChatGPT to have a conversation or ask questions.",
+            parameters=["prompt"],
+            function=use_chatgpt
+        )
     )
 
     # Initialize the agent's thoughts
     agent.think("I've just been created and I can use ChatGPT to interact!")
 
     # Example 1: Direct action call
-    output = use_chatgpt(agent, "Hello! Can you help me learn about artificial intelligence?")
-    print_agent_output(output | {"action": "CHATGPT"})  # Add the action name to the output
+    output = agent.execute_action("CHATGPT", "Hello! Can you help me learn about artificial intelligence?")
+    print_agent_output(output)  # Add the action name to the output
 
     # Example 2: Autonomous behavior - agent can now choose to use ChatGPT on its own
-    for _ in range(3):
-        output = agent.act()
-        print_agent_output(output)
+    output = agent.act()
+    print_agent_output(output)
 
 
 if __name__ == '__main__':
