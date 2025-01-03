@@ -173,3 +173,5 @@ cython_debug/
 # Pickle files
 *.pickle
 *.pkl
+
+.DS_Store
