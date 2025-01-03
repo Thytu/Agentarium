@@ -173,3 +173,9 @@ cython_debug/
 # Pickle files
 *.pickle
 *.pkl
+
+# VS Code
+*.code-workspace
+
+# Pytest
+tests/
