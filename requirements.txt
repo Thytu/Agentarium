@@ -3,3 +3,4 @@ faker>=33.1.0
 PyYAML>=6.0.1
 boto3>=1.35.86
 aisuite>=0.1.7
+dill>=0.3.8
