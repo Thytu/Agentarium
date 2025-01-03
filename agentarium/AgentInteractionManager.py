@@ -90,6 +90,13 @@ class AgentInteractionManager:
             receiver (Agent): The agent receiving the interaction.
             message (str): The content of the interaction.
         """
+
+        if sender.agent_id not in self._agents:
+            raise ValueError(f"Sender agent {sender.agent_id} is not registered in the interaction manager.")
+
+        if receiver.agent_id not in self._agents:
+            raise ValueError(f"Receiver agent {receiver.agent_id} is not registered in the interaction manager.")
+
         interaction = Interaction(sender=sender, receiver=receiver, message=message)
 
         # Record in global interactions

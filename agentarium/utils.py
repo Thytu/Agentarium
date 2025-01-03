@@ -2,7 +2,7 @@ import json
 import hashlib
 
 from typing import Dict, Any
-from .CheckpointManager import CheckpointManager
+# from .CheckpointManager import CheckpointManager
 
 
 def dict_hash(dictionary: Dict[str, Any]) -> str:
@@ -32,6 +32,8 @@ def cache_w_checkpoint_manager(function):
 
 
     def wrapper(*args, **kwargs):
+
+        from .CheckpointManager import CheckpointManager
 
         checkpoint_manager = CheckpointManager()
 

@@ -7,10 +7,9 @@ bob_agent = Agent.create_agent(name="Bob", occupation="Data Scientist")
 alice_agent.talk_to(bob_agent, "Hello Bob! I heard you're working on some interesting data science projects.")
 bob_agent.talk_to(alice_agent, "Hi Alice! Yes, I'm currently working on a machine learning model for natural language processing.")
 
-alice_agent.act() # Here it's the agent that decides to talk to Bob
+alice_agent.act() # Let the agents decide what to do :D
 bob_agent.act()
 
-print("\n === Interactions ===\n")
 print("Alice's interactions:")
 print(alice_agent.get_interactions())
 

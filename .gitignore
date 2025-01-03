@@ -174,5 +174,9 @@ cython_debug/
 *.pickle
 *.pkl
 
+*.dill
+*.pkl
+
 # VS Code
 *.code-workspace
+.DS_Store
