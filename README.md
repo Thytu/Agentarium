@@ -5,7 +5,6 @@
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI version](https://badge.fury.io/py/agentarium.svg)](https://badge.fury.io/py/agentarium)
-[![Tests](https://github.com/thytu/Agentarium/actions/workflows/test.yml/badge.svg)](https://github.com/thytu/Agentarium/actions/workflows/test.yml)
 
 A powerful Python framework for managing and orchestrating AI agents with ease. Agentarium provides a flexible and intuitive way to create, manage, and coordinate interactions between multiple AI agents in various environments.
 
@@ -33,20 +32,22 @@ from agentarium import Agent
 agent1 = Agent(name="agent1")
 agent2 = Agent(name="agent2")
 
-agent1.talk_to(agent2, "Hello, how are you?")
-agent2.talk_to(agent1, "I'm fine, thank you!")
+# Direct communication between agents
+alice.talk_to(bob, "Hello Bob! I heard you're working on some interesting ML projects.")
 
-agent1.act() # Same as agent.talk_to but it's the agent who decides what to do
+# Agent autonomously decides its next action based on context
+bob.act()
 ```
 
 ## ✨ Features
 
 - **🤖 Advanced Agent Management**: Create and orchestrate multiple AI agents with different roles and capabilities
-- **🔄 Robust Interaction Management**: Coordinate complex interactions between agents
-- **💾 Checkpoint System**: Save and restore agent states and interactions
-- **📊 Data Generation**: Generate synthetic data through agent interactions
+- **🔄 Autonomous Decision Making**: Agents can make decisions and take actions based on their context
+- **💾 Checkpoint System**: Save and restore agent states and interactions for reproducibility
+- **🎭 Customizable Actions**: Define custom actions beyond the default talk/think capabilities
+- **🧠 Memory & Context**: Agents maintain memory of past interactions for contextual responses
+- **⚡ AI Integration**: Seamless integration with various AI providers through aisuite
 - **⚡ Performance Optimized**: Built for efficiency and scalability
-- **🌍 Flexible Environment Configuration**: Define custom environments with YAML configuration files
 - **🛠️ Extensible Architecture**: Easy to extend and customize for your specific needs
 
 ## 📚 Examples
@@ -55,32 +56,62 @@ agent1.act() # Same as agent.talk_to but it's the agent who decides what to do
 Create a simple chat interaction between agents:
 
 ```python
-# examples/basic_chat/demo.py
 from agentarium import Agent
 
-alice = Agent.create_agent()
-bob = Agent.create_agent()
+# Create agents with specific characteristics
+alice = Agent.create_agent(name="Alice", occupation="Software Engineer")
+bob = Agent.create_agent(name="Bob", occupation="Data Scientist")
 
-alice.talk_to(bob, "Hello Bob! I heard you're working on some interesting data science projects.")
+# Direct communication
+alice.talk_to(bob, "Hello Bob! I heard you're working on some interesting projects.")
+
+# Let Bob autonomously decide how to respond
 bob.act()
 ```
 
-### Synthetic Data Generation
-Generate synthetic data through agent interactions:
+### Adding Custom Actions
+Add new capabilities to your agents:
 
 ```python
-# examples/synthetic_data/demo.py
+from agentarium import Agent, Action
+
+# Define a simple greeting action
+def greet(name: str, **kwargs) -> str:
+    return f"Hello, {name}!"
+
+# Create an agent and add the greeting action
+agent = Agent.create_agent(name="Alice")
+agent.add_action(
+    Action(
+        name="GREET",
+        description="Greet someone by name",
+        parameters=["name"],
+        function=greet
+    )
+)
+
+# Use the custom action
+agent.execute_action("GREET", "Bob")
+```
+
+### Using Checkpoints
+Save and restore agent states:
+
+```python
 from agentarium import Agent
 from agentarium.CheckpointManager import CheckpointManager
 
+# Initialize checkpoint manager
 checkpoint = CheckpointManager("demo")
 
-alice = Agent.create_agent()
-bob = Agent.create_agent()
+# Create and interact with agents
+alice = Agent.create_agent(name="Alice")
+bob = Agent.create_agent(name="Bob")
 
 alice.talk_to(bob, "What a beautiful day!")
 checkpoint.update(step="interaction_1")
 
+# Save the current state
 checkpoint.save()
 ```
 
@@ -88,23 +119,38 @@ More examples can be found in the [examples/](examples/) directory.
 
 ## 📖 Documentation
 
-### Environment Configuration
-Configure your environment using YAML files:
+### Agent Creation
+Create agents with custom characteristics:
+
+```python
+agent = Agent.create_agent(
+    name="Alice",
+    age=28,
+    occupation="Software Engineer",
+    location="San Francisco",
+    bio="A passionate developer who loves AI"
+)
+```
+
+### LLM Configuration
+Configure your LLM provider and credentials using a YAML file:
 
 ```yaml
 llm:
-  provider: "openai" # any provider supported by aisuite
-  model: "gpt-4o-mini" # any model supported by the provider
+  provider: "openai"  # The LLM provider to use (any provider supported by aisuite)
+  model: "gpt-4"      # The specific model to use from the provider
 
-aisuite: # optional, credentials for aisuite
-  openai:
-    api_key: "sk-..."
+aisuite:              # (optional) Credentials for aisuite
+  openai:            # Provider-specific configuration
+    api_key: "sk-..."  # Your API key
 ```
 
 ### Key Components
 
-- **Agent**: Base class for creating AI agents
-- **CheckpointManager**: Handles saving and loading of agent states
+- **Agent**: Core class for creating AI agents with personalities and autonomous behavior
+- **CheckpointManager**: Handles saving and loading of agent states and interactions
+- **Action**: Base class for defining custom agent actions
+- **AgentInteractionManager**: Manages and tracks all agent interactions
 
 ## 🤝 Contributing
 
@@ -123,11 +169,5 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
 
 ## 🙏 Acknowledgments
 
-- Thanks to all contributors who have helped shape Agentarium
-- Special thanks to the open-source community
+Thanks to all contributors who have helped shape Agentarium 🫶
 
----
-
-<div align="center">
-Made with ❤️ by <a href="https://github.com/thytu">thytu</a>
-</div>
