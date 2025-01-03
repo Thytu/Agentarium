@@ -4,18 +4,16 @@ import re
 import logging
 import aisuite as ai
 
-from enum import Enum
 from copy import deepcopy
-from typing import List, Callable
+from .actions.Action import Action
+from typing import List, Dict, Any
 from faker import Faker
 from .Interaction import Interaction
 from .AgentInteractionManager import AgentInteractionManager
 from .Config import Config
 from .utils import cache_w_checkpoint_manager
-
-
-class DefaultValue(Enum):
-    NOT_PROVIDED = "NOT_PROVIDED"
+from .actions.default_actions import default_actions
+from .constant import DefaultValue
 
 
 faker = Faker()
@@ -57,19 +55,6 @@ If you are not given any information about the person, generate a bio for a rand
 You must generate the bio in the following format:
 Bio: [Bio of the person]
 """
-
-    _default_actions = {
-        "THINK": {
-            "format": "[THINK][CONTENT]",
-            "prompt": "Think about something.",
-            "example": "[THINK][It's such a beautiful day!]",
-        },
-        "TALK": {
-            "format": "[TALK][AGENT_ID][CONTENT]",
-            "prompt": "Talk to the agent with the given ID. Note that you must the agent ID, not the agent name.",
-            "example": "[TALK][123][Hello!]",
-        },
-    }
 
     _default_self_introduction_prompt = """
 Informations about yourself:
@@ -134,11 +119,13 @@ Write in the following format:
         self._self_introduction_prompt = deepcopy(Agent._default_self_introduction_prompt)
         self._act_prompt = deepcopy(Agent._default_act_prompt)
 
-        self._actions = deepcopy(Agent._default_actions)
-        self._actions["TALK"]["function"] = self._talk_action_function
-        self._actions["THINK"]["function"] = self._think_action_function
+        self._actions = deepcopy(default_actions) if kwargs["actions"] == DefaultValue.NOT_PROVIDED else kwargs["actions"]
 
         self.storage = {}  # Useful for storing data between actions. Note: not used by the agentarium system.
+
+    def __setstate__(self, state):
+        self.__dict__.update(state) # default __setstate__
+        self._interaction_manager.register_agent(self) # add the agent to the interaction manager
 
     @staticmethod
     @cache_w_checkpoint_manager
@@ -150,6 +137,7 @@ Write in the following format:
         occupation: str = DefaultValue.NOT_PROVIDED,
         location: str = DefaultValue.NOT_PROVIDED,
         bio: str = DefaultValue.NOT_PROVIDED,
+        actions: dict = DefaultValue.NOT_PROVIDED,
         **kwargs,
     ) -> Agent:
         """
@@ -167,7 +155,7 @@ Write in the following format:
         - Occupation (randomly selected job)
         - Location (randomly selected city)
         - Bio (generated based on other characteristics)
-
+        - Actions, by default "talk" and "think" actions are available (default actions or custom actions)
         Args:
             **kwargs: Dictionary of agent characteristics to use instead of
                 generating them. Any characteristic not provided will be
@@ -175,7 +163,17 @@ Write in the following format:
         """
         try:
             Agent._allow_init = True
-            return Agent(agent_id=agent_id, gender=gender, name=name, age=age, occupation=occupation, location=location, bio=bio, **kwargs)
+            return Agent(
+                agent_id=agent_id,
+                gender=gender,
+                name=name,
+                age=age,
+                occupation=occupation,
+                location=location,
+                bio=bio,
+                actions=actions,
+                **kwargs
+            )
         finally:
             Agent._allow_init = False
 
@@ -316,9 +314,8 @@ Write in the following format:
                 agent for a TALK action is not found.
         """
 
-        # [THINK][CONTENT]: Think about something. (i.e [THINK][It's such a beautiful day!])
-        # [TALK][AGENT_ID][CONTENT]: Talk to the agent with the given ID. Note that you must the agent ID, not the agent name. (i.e [TALK][123][Hello!])
-        # [CHATGPT][CONTENT]: Use ChatGPT. (i.e [CHATGPT][Hello!])
+        if len(self._actions) == 0:
+            raise RuntimeError("No actions available for the agent to perform")
 
         self_introduction = self._self_introduction_prompt.format(
             agent_informations=self.agent_informations,
@@ -327,7 +324,7 @@ Write in the following format:
 
         prompt = self._act_prompt.format(
             self_introduction=self_introduction,
-            actions="\n".join([f"{action['format']}: {action['prompt']} (i.e {action['example']})" for action in self._actions.values()]),
+            actions="\n".join([f"{action.get_format()}: {action.description if action.description else ''}" for action in self._actions.values()]),
             list_of_actions=list(self._actions.keys()),
         )
 
@@ -339,13 +336,14 @@ Write in the following format:
             temperature=0.4,
         )
 
-        actions = re.search(r"<ACTION>(.*?)</ACTION>", response.choices[0].message.content, re.DOTALL).group(1).strip().split("]")
-        actions = [action.replace("[", "").replace("]", "").strip() for action in actions]
+        regex_result = re.search(r"<ACTION>(.*?)</ACTION>", response.choices[0].message.content, re.DOTALL).group(1).strip()
+        action_name, *args = [value.replace("[", "").replace("]", "").strip() for value in regex_result.split("]")]
 
-        if actions[0] in self._actions:
-            return self._actions[actions[0]]["function"](*actions[1:])
+        if action_name not in self._actions:
+            logging.error(f"Received an invalid action: '{action_name=}' in the output: {response.choices[0].message.content}")
+            raise RuntimeError(f"Invalid action received: '{action_name}'.")
 
-        raise RuntimeError(f"Invalid action: '{actions[0]}'. Received output: {response.choices[0].message.content}")
+        return self._actions[action_name].function(*args, agent=self) # we pass the agent to the action function to allow it to use the agent's methods
 
     def dump(self) -> dict:
         """
@@ -386,68 +384,6 @@ Write in the following format:
         """
         return self._interaction_manager.get_agent_interactions(self)
 
-    def _talk_action_function(self, *params) -> None:
-        """
-        Send a message to another agent.
-        """
-        if len(params) < 2:
-            raise RuntimeError(f"Received a TALK action with less than 2 arguments: {params}")
-
-        if (receiver := self._interaction_manager.get_agent(params[0])) is None:
-            raise RuntimeError(f"Received a TALK action with an invalid agent ID: {params[0]}. {params=}")
-
-        return self.talk_to(receiver, params[1])
-
-    @cache_w_checkpoint_manager
-    def talk_to(self, receiver: Agent, message: str) -> None:
-        """
-        Send a message to another agent.
-
-        Records an interaction where this agent sends a message to another agent.
-
-        Args:
-            receiver (Agent): The agent to send the message to.
-            message (str): The content of the message to send.
-        """
-
-        self._interaction_manager.record_interaction(self, receiver, message)
-
-        return {
-            "action": "TALK",
-            "sender": self.agent_id,
-            "receiver": receiver.agent_id,
-            "message": message,
-        }
-
-    def _think_action_function(self, *params) -> None:
-        """
-        Think about a message.
-        """
-        if len(params) < 1:
-            raise RuntimeError(f"Received a THINK action with less than 1 argument: {params}")
-
-        return self.think(params[0])
-
-    @cache_w_checkpoint_manager
-    def think(self, message: str) -> None:
-        """
-        Think about a message.
-
-        Records an interaction where this agent thinks about a message.
-
-        Args:
-            message (str): The content of the message to think about.
-        """
-
-        self._interaction_manager.record_interaction(self, self, message)
-
-        return {
-            "action": "THINK",
-            "sender": self.agent_id,
-            "receiver": self.agent_id,
-            "message": message,
-        }
-
     def ask(self, message: str) -> None:
         """
         Ask the agent a question and receive a contextually aware response.
@@ -481,7 +417,7 @@ Write in the following format:
 
         return response.choices[0].message.content
 
-    def add_new_action(self, action_descriptor: dict[str, str], action_function: Callable[[Agent, str], str | dict]) -> None:
+    def add_action(self, action: Action) -> None:
         """
         Add a new action to the agent's capabilities.
 
@@ -509,7 +445,7 @@ Write in the following format:
         Example:
             ```python
             # Adding a ChatGPT integration action
-            agent.add_new_action(
+            agent.add_action(
                 action_descriptor={
                     "format": "[CHATGPT][Your message here]",
                     "prompt": "Use ChatGPT to have a conversation or ask questions.",
@@ -533,59 +469,57 @@ Write in the following format:
             - Any 'action' key in the function's output dictionary will be overwritten
         """
 
-        if "format" not in action_descriptor:
-            raise RuntimeError(f"Invalid action: {action_descriptor}, missing 'format'")
+        if action.name in self._actions:
+            raise RuntimeError(f"Invalid action: {action.name}, action already exists in the agent's action space")
 
-        name = action_descriptor["format"].split("[")[1].split("]")[0]
+        self._actions[action.name] = action
 
-        if len(name) < 1:
-            raise RuntimeError(f"Invalid action format: {action_descriptor['format']}, first name must be a single word")
+    def execute_action(self, action_name: str, *args, **kwargs) -> Dict[str, Any]:
+        """
+        Manually execute an action by name.
 
-        if name in self._actions:
-            raise RuntimeError(f"Action {action_descriptor} already exists")
+        Args:
+            name: Name of the action to execute
+            *args, **kwargs: Arguments to pass to the action function
 
-        if "prompt" not in action_descriptor:
-            raise RuntimeError(f"Invalid action: {action_descriptor}, missing 'prompt'")
+        Returns:
+            Dict containing the action results
+        """
 
-        if "example" not in action_descriptor:
-            raise RuntimeError(f"Invalid action: {action_descriptor}, missing 'example'")
+        if action_name not in self._actions:
+            raise RuntimeError(f"Invalid action: {action_name}, action does not exist in the agent's action space")
 
-        def standardize_action_output(fun):
-            """
-            Standardizes the output format of action functions.
+        return self._actions[action_name].function(*args, **kwargs, agent=self)
 
-            This decorator ensures that all action functions return a dictionary with a
-            consistent format, containing at minimum an 'action' key with the action name.
-            If the original function returns a dictionary, its contents are preserved
-            (except for the 'action' key which may be overwritten). If it returns a
-            non-dictionary value, it is stored under the 'output' key.
+    def remove_action(self, action_name: str) -> None:
+        """
+        Remove an action from the agent's action space.
+        """
+        if action_name not in self._actions:
+            raise RuntimeError(f"Invalid action: {action_name}, action does not exist in the agent's action space")
 
-            Args:
-                fun (Callable): The action function to decorate.
+        del self._actions[action_name]
 
-            Returns:
-                Callable: A wrapped function that standardizes the output format.
-            """
+    def talk_to(self, agent: Agent, message: str) -> None:
+        """
+        Send a message from one agent to another and record the interaction.
+        """
 
-            def wrapper(*args, **kwargs):
-                fn_output = fun(self, *args, **kwargs)
+        if "talk" not in self._actions:
+            # Did you really removed the default "talk" action and expect the talk_to method to work?
+            raise RuntimeError("Talk action not found in the agent's action space.")
 
-                output = fn_output if type(fn_output) == dict else {"output": fn_output}
+        self.execute_action("talk", agent.agent_id, message)
 
-                if "action" in output:
-                    logging.warning((
-                        f"The action '{name}' returned an output with an 'action' key. "
-                        "This is not allowed, it will be overwritten."
-                    ))
+    def think(self, message: str) -> None:
+        """
+        Make the agent think about a message.
+        """
 
-                output["action"] = name
+        if "think" not in self._actions:
+            raise RuntimeError("Think action not found in the agent's action space.")
 
-                return output
-
-            return wrapper
-
-        self._actions[name] = action_descriptor
-        self._actions[name]["function"] = standardize_action_output(action_function)
+        self.execute_action("think", message)
 
     def reset(self) -> None:
         """
@@ -598,8 +532,8 @@ Write in the following format:
 if __name__ == "__main__":
 
     interaction = Interaction(
-        sender=Agent(name="Alice", bio="Alice is a software engineer."),
-        receiver=Agent(name="Bob", bio="Bob is a data scientist."),
+        sender=Agent.create_agent(name="Alice", bio="Alice is a software engineer."),
+        receiver=Agent.create_agent(name="Bob", bio="Bob is a data scientist."),
         message="Hello Bob! I heard you're working on some interesting data science projects."
     )
 

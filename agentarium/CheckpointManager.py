@@ -1,8 +1,13 @@
 import os
-import pickle
+import dill
 
 from collections import OrderedDict
 from .AgentInteractionManager import AgentInteractionManager
+
+# NOTE: if someone knows how to fix this, please do it :D
+import warnings
+warnings.filterwarnings("ignore", category=dill.PicklingWarning)
+
 
 
 class CheckpointManager:
@@ -40,10 +45,10 @@ class CheckpointManager:
             return
 
         self.name = name
-        self.path = f"{self.name}.pickle"
+        self.path = f"{self.name}.dill"
 
         self._interaction_manager = AgentInteractionManager()
-        self._state = OrderedDict()
+        # self._state = OrderedDict() # NOTE: I think this is not used
 
         self._action_idx = 0
         self.recorded_actions = []
@@ -53,38 +58,35 @@ class CheckpointManager:
 
         self._initialized = True
 
-    def update(self, step: str = None, save: bool = False):
-        """
-        Update the checkpoint with the current state of the simulation.
-        """
+    # def update(self, step: str = None, save: bool = False):
+    #     """
+    #     Update the checkpoint with the current state of the simulation.
+    #     """
 
-        self._state[step] = {
-            "agents": [agent.dump() for agent in self._interaction_manager._agents.values()],
-            "interactions": [interaction.dump() for interaction in self._interaction_manager._interactions],
-        }
+    #     self._state[step] = {
+    #         "agents": [agent.dump() for agent in self._interaction_manager._agents.values()],
+    #         "interactions": [interaction.dump() for interaction in self._interaction_manager._interactions],
+    #     }
 
-        if save:
-            self.save()
+    #     if save:
+    #         self.save()
 
-    def _set_internal_state(self, state: OrderedDict):
-        self._state = state
+    # def _set_internal_state(self, state: OrderedDict):
+    #     self._state = state
 
     def save(self) -> None:
         """
         Save the current state of a simulation.
         """
 
-        pickle.dump({"state": self._state, "actions": self.recorded_actions}, open(self.path, "wb"))
-        # should be imported before
-        # creating chatbots the next week?
+        dill.dump({"actions": self.recorded_actions}, open(self.path, "wb"), byref=True)
 
     def load(self) -> None:
         """
         Load a simulation from a checkpoint.
         """
 
-        from agentarium import Agent
-        env_data = pickle.load(open(self.path, "rb"))
+        env_data = dill.load(open(self.path, "rb"))
 
-        self._state = OrderedDict(env_data["state"])
+        # self._state = OrderedDict(env_data["state"])
         self.recorded_actions = env_data["actions"]
