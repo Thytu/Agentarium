@@ -299,19 +299,26 @@ Write in the following format:
     @cache_w_checkpoint_manager
     def act(self) -> str:
         """
-        Generate and execute the agent's next action.
+        Generate and execute the agent's next action based on their current state.
 
-        Uses the language model to determine and perform the agent's next
-        action based on their characteristics and interaction history.
-        The agent can either think to themselves or talk to another agent.
+        This method:
+        1. Generates a self-introduction based on agent's characteristics and history
+        2. Creates a prompt combining the self-introduction and available actions
+        3. Uses the language model to decide the next action
+        4. Parses and executes the chosen action
+
+        The agent's decision is based on:
+        - Their characteristics (personality, role, etc.)
+        - Their interaction history
+        - Available actions in their action space
 
         Returns:
-            str: The complete response from the language model, including
-                the agent's thoughts and chosen action.
+            Dict[str, Any]: A dictionary containing the action results, including:
+                - 'action': The name of the executed action
+                - Additional keys depending on the specific action executed
 
         Raises:
-            RuntimeError: If the action format is invalid or if the target
-                agent for a TALK action is not found.
+            RuntimeError: If no actions are available or if the chosen action is invalid
         """
 
         if len(self._actions) == 0:

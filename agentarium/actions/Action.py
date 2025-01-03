@@ -47,10 +47,26 @@ def standardize_action_output(action):
 
 
 def verify_agent_in_kwargs(function):
+    """
+    Decorator that verifies the presence of an 'agent' key in kwargs.
+
+    This decorator ensures that any action function receives an agent instance
+    through its kwargs. This is crucial for actions that need to interact with
+    or modify the agent's state.
+
+    Args:
+        function (Callable): The action function to decorate.
+
+    Returns:
+        Callable: A wrapped function that verifies the presence of 'agent' in kwargs.
+
+    Raises:
+        RuntimeError: If 'agent' key is not found in kwargs.
+    """
     @wraps(function)
     def wrapper(*args, **kwargs):
         if "agent" not in kwargs:
-            raise RuntimeError(f"Couldn't find agent in {kwargs=} for {function.__name__} action")
+            raise RuntimeError("Action functions must receive an agent instance through kwargs")
         return function(*args, **kwargs)
     return wrapper
 

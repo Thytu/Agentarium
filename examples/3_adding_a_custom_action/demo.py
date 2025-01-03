@@ -5,16 +5,17 @@ It demonstrates:
 2. Adding a new action (ChatGPT integration) to the agent
 3. Using both direct action calls and autonomous agent behavior
 
-The demo specifically shows how to use the `add_action` method to extend an agent's capabilities:
+The demo specifically shows how to use the `add_action` method to extend an agent's capabilities.
 
 Action Definition Format:
-    {
-        "prompt": str,     # Description of what the action does
-        "format": str,     # Format string showing how to use the action: [ACTION_NAME][ARG1][ARG2]...
-        "example": str,    # Concrete example of the action's usage
-    }
+    Action(
+        name: str,           # Unique identifier for the action
+        description: str,    # Description of what the action does
+        parameters: List[str], # List of parameter names the action accepts
+        function: Callable   # Function that implements the action behavior
+    )
 
-The action_function parameter should be a callable that takes (agent, *args) and returns
+The action function should take (*args, **kwargs) as parameters and return
 either a string or a dictionary. If a dictionary is returned, it can contain any keys
 except 'action' which is reserved. The function's output will be automatically
 standardized to include the action name.
