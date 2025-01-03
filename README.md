@@ -5,6 +5,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI version](https://badge.fury.io/py/agentarium.svg)](https://badge.fury.io/py/agentarium)
+[![Tests](https://github.com/thytu/Agentarium/actions/workflows/test.yml/badge.svg)](https://github.com/thytu/Agentarium/actions/workflows/test.yml)
 
 A powerful Python framework for managing and orchestrating AI agents with ease. Agentarium provides a flexible and intuitive way to create, manage, and coordinate interactions between multiple AI agents in various environments.
 
