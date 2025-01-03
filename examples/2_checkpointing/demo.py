@@ -15,8 +15,8 @@ if __name__ == '__main__':
     # Create two agents - their states will be tracked by the checkpoint manager
     # Even agent creation is cached - if these agents were created before,
     # they'll be loaded from cache with their exact same properties
-    alice = Agent.create_agent()
-    bob = Agent.create_agent()
+    alice = Agent.create_agent(name="Alice")
+    bob = Agent.create_agent(name="Bob")
 
     # When this interaction happens:
     # - First run: Actually calls the LLM and stores the result
