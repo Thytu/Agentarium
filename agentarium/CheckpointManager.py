@@ -31,6 +31,9 @@ class CheckpointManager:
         if cls._instance is None:
             cls._instance = super(CheckpointManager, cls).__new__(cls)
             cls._instance._initialized = False
+        elif name and name != cls._instance.name:
+            # Allow only one instance of CheckpointManager
+            raise RuntimeError(f"CheckpointManager instance already exists with a different name: {name}")
         return cls._instance
 
     def __init__(self, name: str = "default"):
