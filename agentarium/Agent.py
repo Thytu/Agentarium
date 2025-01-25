@@ -514,7 +514,7 @@ Don't forget to close each tag that you open.
 
         del self._actions[action_name]
 
-    def talk_to(self, agent: Agent | list[Agent], message: str) -> None:
+    def talk_to(self, agent: Agent | list[Agent], message: str) -> Dict[str, Any]:
         """
         Send a message from one agent to another and record the interaction.
         """
@@ -524,9 +524,9 @@ Don't forget to close each tag that you open.
             raise RuntimeError("Talk action not found in the agent's action space.")
 
         if isinstance(agent, Agent):
-            self.execute_action("talk", agent.agent_id, message)
+            return self.execute_action("talk", agent.agent_id, message)
         else:
-            self.execute_action("talk", ','.join([agent.agent_id for agent in agent]), message)
+            return self.execute_action("talk", ','.join([agent.agent_id for agent in agent]), message)
 
     def think(self, message: str) -> None:
         """
