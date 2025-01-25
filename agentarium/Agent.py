@@ -8,7 +8,7 @@ from copy import deepcopy
 from .actions.Action import Action
 from typing import List, Dict, Any
 from faker import Faker
-from .Interaction import Interaction
+from .Interaction import OneToOneInteraction, OneToManyInteraction
 from .AgentInteractionManager import AgentInteractionManager
 from .Config import Config
 from .utils import cache_w_checkpoint_manager
@@ -79,6 +79,8 @@ Write in the following format:
 <ACTION>
 [{{One of the following actions: {list_of_actions}}}]
 </ACTION>
+
+Don't forget to close each tag that you open.
 """
 
     def __init__(self, **kwargs):
@@ -343,7 +345,12 @@ Write in the following format:
             temperature=0.4,
         )
 
-        regex_result = re.search(r"<ACTION>(.*?)</ACTION>", response.choices[0].message.content, re.DOTALL).group(1).strip()
+        try:
+            regex_result = re.search(r"<ACTION>(.*?)</ACTION>", response.choices[0].message.content, re.DOTALL).group(1).strip()
+        except AttributeError as e:
+            logging.error(f"Received a response without any action: {response.choices[0].message.content=}")
+            raise e
+
         action_name, *args = [value.replace("[", "").replace("]", "").strip() for value in regex_result.split("]")]
 
         if action_name not in self._actions:
@@ -381,7 +388,7 @@ Write in the following format:
         """
         return Agent.__str__(self)
 
-    def get_interactions(self) -> List[Interaction]:
+    def get_interactions(self) -> List[OneToOneInteraction | OneToManyInteraction]:
         """
         Retrieve all interactions involving this agent.
 
@@ -391,7 +398,7 @@ Write in the following format:
         """
         return self._interaction_manager.get_agent_interactions(self)
 
-    def ask(self, message: str) -> None:
+    def ask(self, message: str) -> str:
         """
         Ask the agent a question and receive a contextually aware response.
 
@@ -507,7 +514,7 @@ Write in the following format:
 
         del self._actions[action_name]
 
-    def talk_to(self, agent: Agent, message: str) -> None:
+    def talk_to(self, agent: Agent | list[Agent], message: str) -> None:
         """
         Send a message from one agent to another and record the interaction.
         """
@@ -516,7 +523,10 @@ Write in the following format:
             # Did you really removed the default "talk" action and expect the talk_to method to work?
             raise RuntimeError("Talk action not found in the agent's action space.")
 
-        self.execute_action("talk", agent.agent_id, message)
+        if isinstance(agent, Agent):
+            self.execute_action("talk", agent.agent_id, message)
+        else:
+            self.execute_action("talk", ','.join([agent.agent_id for agent in agent]), message)
 
     def think(self, message: str) -> None:
         """
@@ -538,7 +548,7 @@ Write in the following format:
 
 if __name__ == "__main__":
 
-    interaction = Interaction(
+    interaction = OneToOneInteraction(
         sender=Agent.create_agent(name="Alice", bio="Alice is a software engineer."),
         receiver=Agent.create_agent(name="Bob", bio="Bob is a data scientist."),
         message="Hello Bob! I heard you're working on some interesting data science projects."

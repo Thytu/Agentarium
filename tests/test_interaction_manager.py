@@ -1,5 +1,5 @@
 import pytest
-from agentarium import Agent, Interaction
+from agentarium import Agent, OneToOneInteraction
 from agentarium.AgentInteractionManager import AgentInteractionManager
 
 

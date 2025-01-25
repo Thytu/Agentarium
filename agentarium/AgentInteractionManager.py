@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, List, TYPE_CHECKING
-from .Interaction import Interaction
+from .Interaction import OneToOneInteraction, OneToManyInteraction
 
 if TYPE_CHECKING:
     from .Agent import Agent
@@ -43,8 +43,8 @@ class AgentInteractionManager:
         """
         if not self._initialized:
             self._agents: Dict[str, Agent] = {}
-            self._interactions: List[Interaction] = []
-            self._agent_private_interactions: Dict[str, List[Interaction]] = {}
+            self._interactions: List[OneToOneInteraction | OneToManyInteraction] = []
+            self._agent_private_interactions: Dict[str, List[OneToOneInteraction | OneToManyInteraction]] = {}
             self._initialized = True
 
     def register_agent(self, agent: Agent) -> None:
@@ -78,7 +78,42 @@ class AgentInteractionManager:
         """
         return self._agents.get(agent_id)
 
-    def record_interaction(self, sender: Agent, receiver: Agent, message: str) -> None:
+    def _record_one_to_one_interaction(self, sender: Agent, receiver: Agent, message: str) -> None:
+
+        if receiver.agent_id not in self._agents:
+            raise ValueError(f"Receiver agent {receiver.agent_id} not registered in the interaction manager.")
+
+        interaction = OneToOneInteraction(sender=sender, receiver=receiver, message=message)
+
+        # Record in global interactions
+        self._interactions.append(interaction)
+
+        # Record in private interactions for both sender and receiver
+        self._agent_private_interactions[sender.agent_id].append(interaction)
+
+        # Prevent storing interactions twice if the sender and receiver are the same
+        if receiver.agent_id != sender.agent_id:
+            self._agent_private_interactions[receiver.agent_id].append(interaction)
+
+    def _record_one_to_many_interaction(self, sender: Agent, receivers: list[Agent], message: str) -> None:
+
+        if any(_receiver.agent_id not in self._agents for _receiver in receivers):
+            invalid_receivers = [_receiver for _receiver in receivers if _receiver.agent_id not in self._agents]
+            raise ValueError(f"Receiver agent(s) {invalid_receivers} not registered in the interaction manager.")
+
+        interaction = OneToManyInteraction(sender=sender, receivers=receivers, message=message)
+
+        # Record in global interactions
+        self._interactions.append(interaction)
+
+        # Record in private interactions for both sender and receiver
+        self._agent_private_interactions[sender.agent_id].append(interaction)
+
+        for _receiver in receivers:
+            if _receiver.agent_id != sender.agent_id:
+                self._agent_private_interactions[_receiver.agent_id].append(interaction)
+
+    def record_interaction(self, sender: Agent, receiver: Agent | list[Agent], message: str) -> None:
         """
         Record a new interaction between two agents.
 
@@ -87,28 +122,19 @@ class AgentInteractionManager:
 
         Args:
             sender (Agent): The agent initiating the interaction.
-            receiver (Agent): The agent receiving the interaction.
+            receiver (Agent | list[Agent]): The agent(s) receiving the interaction.
             message (str): The content of the interaction.
         """
 
         if sender.agent_id not in self._agents:
             raise ValueError(f"Sender agent {sender.agent_id} is not registered in the interaction manager.")
 
-        if receiver.agent_id not in self._agents:
-            raise ValueError(f"Receiver agent {receiver.agent_id} is not registered in the interaction manager.")
+        if isinstance(receiver, list):
+            self._record_one_to_many_interaction(sender, receiver, message)
+        else:
+            self._record_one_to_one_interaction(sender, receiver, message)
 
-        interaction = Interaction(sender=sender, receiver=receiver, message=message)
-
-        # Record in global interactions
-        self._interactions.append(interaction)
-
-        # Record in private interactions for both sender and receiver
-        self._agent_private_interactions[sender.agent_id].append(interaction)
-
-        if receiver.agent_id != sender.agent_id:
-            self._agent_private_interactions[receiver.agent_id].append(interaction)
-
-    def get_all_interactions(self) -> List[Interaction]:
+    def get_all_interactions(self) -> List[OneToOneInteraction | OneToManyInteraction]:
         """
         Retrieve the complete history of all interactions in the environment.
 
@@ -119,7 +145,7 @@ class AgentInteractionManager:
         """
         return self._interactions
 
-    def get_agent_interactions(self, agent: Agent) -> List[Interaction]:
+    def get_agent_interactions(self, agent: Agent) -> List[OneToOneInteraction | OneToManyInteraction]:
         """
         Retrieve all interactions involving a specific agent.
 
