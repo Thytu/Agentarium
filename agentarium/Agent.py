@@ -8,7 +8,7 @@ from copy import deepcopy
 from .actions.Action import Action
 from typing import List, Dict, Any
 from faker import Faker
-from .Interaction import OneToOneInteraction, OneToManyInteraction
+from .Interaction import Interaction
 from .AgentInteractionManager import AgentInteractionManager
 from .Config import Config
 from .utils import cache_w_checkpoint_manager
@@ -388,7 +388,7 @@ Don't forget to close each tag that you open.
         """
         return Agent.__str__(self)
 
-    def get_interactions(self) -> List[OneToOneInteraction | OneToManyInteraction]:
+    def get_interactions(self) -> List[Interaction]:
         """
         Retrieve all interactions involving this agent.
 
@@ -548,7 +548,7 @@ Don't forget to close each tag that you open.
 
 if __name__ == "__main__":
 
-    interaction = OneToOneInteraction(
+    interaction = Interaction(
         sender=Agent.create_agent(name="Alice", bio="Alice is a software engineer."),
         receiver=Agent.create_agent(name="Bob", bio="Bob is a data scientist."),
         message="Hello Bob! I heard you're working on some interesting data science projects."
