@@ -1,7 +1,7 @@
 import pytest
-from agentarium import Agent, Interaction
-from agentarium.AgentInteractionManager import AgentInteractionManager
 
+from agentarium.Agent import Agent
+from agentarium.AgentInteractionManager import AgentInteractionManager
 
 @pytest.fixture
 def interaction_manager():
@@ -34,8 +34,8 @@ def test_interaction_recording(interaction_manager, agent_pair):
     assert len(alice.get_interactions()) == 1
 
     interaction = alice.get_interactions()[0]
-    assert interaction.sender is alice
-    assert interaction.receiver is bob
+    assert interaction.sender.agent_id == alice.agent_id
+    assert interaction.receiver[0].agent_id == bob.agent_id
     assert interaction.message == message
 
 def test_get_agent_interactions(interaction_manager, agent_pair):
@@ -89,8 +89,8 @@ def test_self_interaction(interaction_manager, agent_pair):
 
     interactions = interaction_manager.get_agent_interactions(alice)
     assert len(interactions) == 1
-    assert interactions[0].sender is alice
-    assert interactions[0].receiver is alice
+    assert interactions[0].sender.agent_id == alice.agent_id
+    assert interactions[0].receiver[0].agent_id == alice.agent_id
     assert interactions[0].message == thought
 
 def test_interaction_validation(interaction_manager, agent_pair):
@@ -98,7 +98,11 @@ def test_interaction_validation(interaction_manager, agent_pair):
 
     alice, _ = agent_pair
 
-    unregistered_agent = type("UnregisteredAgent", (object,), {"agent_id": "some_unregistered_id"})
+    unregistered_agent = type("UnregisteredAgent", (Agent,), {
+        "agent_id": "some_unregistered_id",
+        "__init__": lambda self, *args, **kwargs: None,
+        "agent_informations": {},
+    })()
 
     with pytest.raises(ValueError):
         interaction_manager.record_interaction(unregistered_agent, alice, "Hello")

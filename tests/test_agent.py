@@ -67,15 +67,15 @@ def test_agent_interaction(agent_pair):
     # Check Alice's interactions
     alice_interactions = alice.get_interactions()
     assert len(alice_interactions) == 1
-    assert alice_interactions[0].sender == alice
-    assert alice_interactions[0].receiver == bob
+    assert alice_interactions[0].sender.agent_id == alice.agent_id
+    assert alice_interactions[0].receiver[0].agent_id == bob.agent_id
     assert alice_interactions[0].message == message
 
     # Check Bob's interactions
     bob_interactions = bob.get_interactions()
     assert len(bob_interactions) == 1
-    assert bob_interactions[0].sender == alice
-    assert bob_interactions[0].receiver == bob
+    assert bob_interactions[0].sender.agent_id == alice.agent_id
+    assert bob_interactions[0].receiver[0].agent_id == bob.agent_id
     assert bob_interactions[0].message == message
 
 
@@ -89,8 +89,8 @@ def test_agent_think(agent_pair):
 
     interactions = agent.get_interactions()
     assert len(interactions) == 1
-    assert interactions[0].sender == agent
-    assert interactions[0].receiver == agent
+    assert interactions[0].sender.agent_id == agent.agent_id
+    assert interactions[0].receiver[0].agent_id == agent.agent_id
     assert interactions[0].message == thought
 
 
@@ -110,3 +110,35 @@ def test_agent_reset(base_agent):
     base_agent.reset()
     assert len(base_agent.get_interactions()) == 0
     assert len(base_agent.storage) == 0
+
+
+def test_display_interaction(agent_pair):
+    """Test displaying an interaction."""
+    alice, bob = agent_pair
+    message = "Hello Bob!"
+
+    alice.talk_to(bob, message)  # One receiver
+    alice.talk_to([bob, alice], message)  # Multiple receivers
+
+    # just check that it doesn't raise an error
+    print(alice.get_interactions()[0]) # one receiver
+    print(alice.get_interactions()[1]) # multiple receivers
+
+
+def test_agent_actions_manualy_executed(base_agent):
+    """Test agent actions."""
+
+    base_agent.add_action(Action("test", "A test action", ["message"], lambda message, *args, **kwargs: {"message": message}))
+
+    action = base_agent.execute_action("test", "test message")
+    assert action["message"] == "test message"
+
+
+def test_agent_actions_automatically_executed(base_agent):
+    """Test agent actions."""
+
+    base_agent.add_action(Action("test", "A test action", ["message"], lambda message, *args, **kwargs: {"message": message}))
+    base_agent.think("I need to do the action 'test' with the message 'test message'")
+
+    action = base_agent.act()
+    assert action["message"] == "test message"

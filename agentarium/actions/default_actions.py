@@ -20,7 +20,7 @@ def talk_action_function(*args, **kwargs):
     Returns:
         dict: A dictionary containing:
             - sender (str): The ID of the sending agent
-            - receiver (str): The ID of the receiving agent
+            - receiver (str | list[str]): The ID of the receiving agent
             - message (str): The content of the message
 
     Raises:
@@ -34,19 +34,32 @@ def talk_action_function(*args, **kwargs):
     if "agent" not in kwargs:
         raise RuntimeError(f"Couldn't find agent in  {kwargs=} for TALK action")
 
-    receiver = kwargs["agent"]._interaction_manager.get_agent(args[0])
+    # Retrieve the receiver IDs
+    receiver_ids = [_rec.strip() for _rec in args[0].split(',') if len(_rec.strip()) != 0]
 
-    if receiver is None:
+    # If the receiver is "all", talk to all agents
+    if "all" in receiver_ids:
+        receiver_ids = [agent.agent_id for agent in kwargs["agent"]._interaction_manager._agents.values()]
+
+    # Retrieve the receivers from their IDs
+    receivers = [kwargs["agent"]._interaction_manager.get_agent(_receiver_id) for _receiver_id in receiver_ids]
+
+    # Check if the receivers are valid
+    if any(receiver is None for receiver in receivers):
         logger.error(f"Received a TALK action with an invalid agent ID {args[0]=} {args=} {kwargs['agent']._interaction_manager._agents=}")
-        raise RuntimeError(f"Received a TALK action with an invalid agent ID: {args[0]}. {args=}")
+        raise RuntimeError(f"Received a TALK action with an invalid agent ID: {args[0]=}. {args=}")
 
     message = args[1]
 
-    kwargs["agent"]._interaction_manager.record_interaction(kwargs["agent"], receiver, message)
+    if len(message) == 0:
+        logger.warning(f"Received empty message for talk_action_function: {args=}")
+
+    # Record the interaction
+    kwargs["agent"]._interaction_manager.record_interaction(kwargs["agent"], receivers, message)
 
     return {
         "sender": kwargs["agent"].agent_id,
-        "receiver": receiver.agent_id,
+        "receiver": [receiver.agent_id for receiver in receivers],
         "message": message,
     }
 
@@ -88,9 +101,15 @@ def think_action_function(*args, **kwargs):
 
 
 # Create action instances at module level
+talk_action_description = """\
+Talk to agents by specifying their IDs followed by the content to say:
+- To talk to a single agent: Enter an agent ID (e.g. "1")
+- To talk to multiple agents: Enter IDs separated by commas (e.g. "1,2,3")
+- To talk to all agents: Enter "all"\
+"""
 talk_action = Action(
     name="talk",
-    description="Talk to the agent with the given ID.",
+    description=talk_action_description,
     parameters=["agent_id", "message"],
     function=talk_action_function,
 )

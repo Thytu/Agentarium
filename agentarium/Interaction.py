@@ -23,8 +23,8 @@ class Interaction:
     sender: Agent
     """The agent who initiated the interaction."""
 
-    receiver: Agent
-    """The agent who received the interaction."""
+    receiver: list[Agent]
+    """The agent(s) who received the interaction."""
 
     message: str
     """The content of the interaction between the agents."""
@@ -35,7 +35,7 @@ class Interaction:
         """
         return {
             "sender": self.sender.agent_id,
-            "receiver": self.receiver.agent_id,
+            "receiver": [receiver.agent_id for receiver in self.receiver],
             "message": self.message,
         }
 
@@ -46,7 +46,11 @@ class Interaction:
         Returns:
             str: A formatted string showing sender, receiver, and the interaction message.
         """
-        return f"Interaction from {self.sender.name} ({self.sender.agent_id}) to {self.receiver.name} ({self.receiver.agent_id}): {self.message}"
+
+        if len(self.receiver) == 1:
+            return f"{self.sender.name} ({self.sender.agent_id}) said to {self.receiver[0].name} ({self.receiver[0].agent_id}): {self.message}"
+        else:
+            return f"{self.sender.name} ({self.sender.agent_id}) said to {', '.join([_receiver.name + f'({_receiver.agent_id})' for _receiver in self.receiver])}: {self.message}"
 
     def __repr__(self) -> str:
         """
@@ -56,4 +60,3 @@ class Interaction:
             str: A formatted string showing sender, receiver, and the interaction message.
         """
         return self.__str__()
-

@@ -78,7 +78,7 @@ class AgentInteractionManager:
         """
         return self._agents.get(agent_id)
 
-    def record_interaction(self, sender: Agent, receiver: Agent, message: str) -> None:
+    def record_interaction(self, sender: Agent, receiver: Agent | list[Agent], message: str) -> None:
         """
         Record a new interaction between two agents.
 
@@ -87,15 +87,21 @@ class AgentInteractionManager:
 
         Args:
             sender (Agent): The agent initiating the interaction.
-            receiver (Agent): The agent receiving the interaction.
+            receiver (Agent | list[Agent]): The agent(s) receiving the interaction.
             message (str): The content of the interaction.
         """
+
+        from .Agent import Agent
 
         if sender.agent_id not in self._agents:
             raise ValueError(f"Sender agent {sender.agent_id} is not registered in the interaction manager.")
 
-        if receiver.agent_id not in self._agents:
-            raise ValueError(f"Receiver agent {receiver.agent_id} is not registered in the interaction manager.")
+        if isinstance(receiver, Agent):
+            receiver = [receiver]
+
+        if any(_receiver.agent_id not in self._agents for _receiver in receiver):
+            invalid_receivers = [_receiver for _receiver in receiver if _receiver.agent_id not in self._agents]
+            raise ValueError(f"Receiver agent(s) {invalid_receivers} not registered in the interaction manager.")
 
         interaction = Interaction(sender=sender, receiver=receiver, message=message)
 
@@ -105,8 +111,9 @@ class AgentInteractionManager:
         # Record in private interactions for both sender and receiver
         self._agent_private_interactions[sender.agent_id].append(interaction)
 
-        if receiver.agent_id != sender.agent_id:
-            self._agent_private_interactions[receiver.agent_id].append(interaction)
+        for _receiver in receiver:
+            if _receiver.agent_id != sender.agent_id:
+                self._agent_private_interactions[_receiver.agent_id].append(interaction)
 
     def get_all_interactions(self) -> List[Interaction]:
         """
