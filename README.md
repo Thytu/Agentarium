@@ -158,7 +158,152 @@ Contributions are welcome! Here's how you can help:
 
 1. Fork the repository
 2. Create a new branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
+## FAQ
+
+### What is Agentarium?
+
+Agentarium is a **Python framework for managing and orchestrating AI agents**. It provides a flexible and intuitive way to create, manage, and coordinate interactions between multiple AI agents in various environments.
+
+### How does Agentarium differ from LangChain or CrewAI?
+
+| Framework | Focus | Key Feature |
+|-----------|-------|-------------|
+| **Agentarium** | Agent orchestration | Autonomous decision making, checkpoint system |
+| **LangChain** | Chain-based workflows | Sequential LLM chains, RAG pipelines |
+| **CrewAI** | Multi-agent role-playing | Agent roles, task delegation |
+
+Agentarium specializes in **autonomous agent behavior** with a checkpoint system for reproducibility, while LangChain focuses on **chains** and CrewAI on **role-based collaboration**.
+
+### What are the key components of Agentarium?
+
+| Component | Purpose |
+|-----------|---------|
+| **Agent** | Core class for creating AI agents with personalities and autonomous behavior |
+| **CheckpointManager** | Handles saving and loading of agent states and interactions |
+| **Action** | Base class for defining custom agent actions |
+| **AgentInteractionManager** | Manages and tracks all agent interactions |
+
+### How do I create an agent?
+
+```python
+from agentarium import Agent
+
+# Simple creation
+agent = Agent(name="Alice")
+
+# With characteristics
+agent = Agent.create_agent(
+    name="Alice",
+    age=28,
+    occupation="Software Engineer",
+    location="San Francisco",
+    bio="A passionate developer who loves AI"
+)
+```
+
+### What LLM providers does Agentarium support?
+
+Agentarium uses **aisuite** for LLM integration, supporting:
+
+| Provider | Configuration |
+|----------|---------------|
+| **OpenAI** | `provider: "openai"`, model: `gpt-4`, `gpt-3.5-turbo` |
+| **Anthropic** | `provider: "anthropic"`, model: `claude-3-opus`, `claude-3-sonnet` |
+| **Other aisuite providers** | Any provider supported by aisuite |
+
+Configure in YAML:
+```yaml
+llm:
+  provider: "openai"
+  model: "gpt-4"
+
+aisuite:
+  openai:
+    api_key: "sk-..."
+```
+
+### How does autonomous decision making work?
+
+Agents can decide their next action based on context:
+
+```python
+# Agent autonomously decides how to respond
+bob.act()
+
+# Direct communication
+alice.talk_to(bob, "Hello Bob!")
+```
+
+The `act()` method lets agents autonomously choose their next action based on conversation history and context.
+
+### How do I use the checkpoint system?
+
+```python
+from agentarium.CheckpointManager import CheckpointManager
+
+# Initialize checkpoint manager
+checkpoint = CheckpointManager("demo")
+
+# Create and interact with agents
+alice = Agent.create_agent(name="Alice")
+bob = Agent.create_agent(name="Bob")
+
+alice.talk_to(bob, "What a beautiful day!")
+checkpoint.update(step="interaction_1")
+
+# Save the current state
+checkpoint.save()
+
+# Later, restore the state
+checkpoint.load()
+```
+
+### How do I add custom actions?
+
+```python
+from agentarium import Agent, Action
+
+# Define a custom action
+def greet(name: str, **kwargs) -> str:
+    return f"Hello, {name}!"
+
+# Add to agent
+agent = Agent.create_agent(name="Alice")
+agent.add_action(
+    Action(
+        name="GREET",
+        description="Greet someone by name",
+        parameters=["name"],
+        function=greet
+    )
+)
+
+# Execute custom action
+agent.execute_action("GREET", "Bob")
+```
+
+### What Python version is required?
+
+Agentarium requires **Python 3.10+**.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| **Import errors** | Ensure Python 3.10+ and `pip install agentarium` |
+| **LLM connection failures** | Check YAML configuration and API keys in aisuite section |
+| **Checkpoint not saving** | Verify CheckpointManager path exists and has write permissions |
+| **Agent not responding** | Check LLM provider configuration and API key validity |
+
+### Where can I get help?
+
+| Resource | Link |
+|----------|------|
+| **PyPI** | [pypi.org/project/agentarium](https://pypi.org/project/agentarium/) |
+| **Examples** | [examples/](https://github.com/Thytu/Agentarium/tree/main/examples) directory |
+| **GitHub Issues** | [Thytu/Agentarium/issues](https://github.com/Thytu/Agentarium/issues) |
+
+<br>3. Make your changes
 4. Commit your changes (`git commit -m 'feat: add amazing feature'`)
 5. Push to the branch (`git push origin feature/amazing-feature`)
 6. Open a Pull Request
