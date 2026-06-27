@@ -41,7 +41,7 @@ bob.act()
 
 ## ✨ Features
 
-- **🤖 Advanced Agent Management**: Create and orchestrate multiple AI agents with different roles and capabilities
+- **🤖 Agent Management**: Create and orchestrate multiple AI agents with different roles and capabilities
 - **🔄 Autonomous Decision Making**: Agents can make decisions and take actions based on their context
 - **💾 Checkpoint System**: Save and restore agent states and interactions for reproducibility
 - **🎭 Customizable Actions**: Define custom actions beyond the default talk/think capabilities
