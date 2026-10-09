@@ -28,9 +28,9 @@ pip install agentarium
 ```python
 from agentarium import Agent
 
-# Create agents
-agent1 = Agent(name="agent1")
-agent2 = Agent(name="agent2")
+# Create agents (configure an LLM provider first - see examples/1_basic_chat/config.yaml)
+alice = Agent.create_agent(name="Alice")
+bob = Agent.create_agent(name="Bob")
 
 # Direct communication between agents
 alice.talk_to(bob, "Hello Bob! I heard you're working on some interesting ML projects.")
